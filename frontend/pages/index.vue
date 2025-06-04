@@ -1,4 +1,3 @@
-<!-- pages/index.vue -->
 <template>
     <div class="min-h-screen bg-gray-50">
         <div class="container mx-auto px-4 py-8">
@@ -12,34 +11,41 @@
             <SearchForm @search="handleSearch" />
 
             <!-- Loading State -->
-            <div v-if="pending" class="text-center py-12">
+            <div v-if="isLoading" class="text-center py-12">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <p class="mt-2 text-gray-600">Searching recipes...</p>
             </div>
 
             <!-- Error State -->
-            <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <div v-else-if="hasError" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
                 <div class="flex">
                     <svg class="h-5 w-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
                     </svg>
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-red-800">Error loading recipes</h3>
-                        <p class="text-sm text-red-700 mt-1">{{ error.message || 'Something went wrong. Please try again.' }}</p>
+                        <p class="text-sm text-red-700 mt-1">Something went wrong. Please try again.</p>
+                        <button
+                            @click="loadRecipes"
+                            class="mt-2 text-sm text-red-800 underline hover:text-red-900"
+                        >
+                            Retry
+                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Results -->
-            <div v-else>
+            <div v-else-if="recipes">
+
                 <!-- Results Header -->
-                <div v-if="data?.data" class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center">
                         <h2 class="text-2xl font-semibold text-gray-800">
-                            {{ hasSearchParams ? 'Search Results' : 'All Recipes' }}
+                            {{ hasActiveSearch ? 'Search Results' : 'All Recipes' }}
                         </h2>
                         <span class="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-              {{ data.meta.total }} {{ data.meta.total === 1 ? 'recipe' : 'recipes' }}
+              {{ recipes.meta.total }} {{ recipes.meta.total === 1 ? 'recipe' : 'recipes' }}
             </span>
                     </div>
 
@@ -50,8 +56,7 @@
                             id="perPage"
                             v-model="perPage"
                             @change="handlePerPageChange"
-                            class="border border-gray-300 rounded-md px-3 py-1 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none bg-no-repeat bg-right"
-                            style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K'); background-position: right 8px center; background-size: 12px 8px;"
+                            class="form-select"
                         >
                             <option value="10">10</option>
                             <option value="20">20</option>
@@ -61,7 +66,7 @@
                 </div>
 
                 <!-- No Results -->
-                <div v-if="data?.data?.length === 0" class="text-center py-12">
+                <div v-if="recipes.data.length === 0" class="text-center py-12">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -70,9 +75,9 @@
                 </div>
 
                 <!-- Recipe Grid -->
-                <div v-else-if="data?.data" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <RecipeCard
-                        v-for="recipe in data.data"
+                        v-for="recipe in recipes.data"
                         :key="recipe.id"
                         :recipe="recipe"
                     />
@@ -80,11 +85,11 @@
 
                 <!-- Pagination -->
                 <RecipePagination
-                    v-if="data?.meta && data.meta.last_page > 1"
-                    :current-page="data.meta.current_page"
-                    :total-pages="data.meta.last_page"
-                    :total="data.meta.total"
-                    :per-page="data.meta.per_page"
+                    v-if="recipes.meta.last_page > 1"
+                    :current-page="recipes.meta.current_page"
+                    :total-pages="recipes.meta.last_page"
+                    :total="recipes.meta.total"
+                    :per-page="recipes.meta.per_page"
                     @page-change="handlePageChange"
                 />
             </div>
@@ -104,121 +109,127 @@ useHead({
     ]
 })
 
+// Router and route
 const route = useRoute()
 const router = useRouter()
 
-// Reactive search parameters
-const searchParams = ref({
+// Reactive state
+const recipes = ref(null)
+const isLoading = ref(true)
+const hasError = ref(false)
+
+// Search parameters from URL
+const searchParams = reactive({
     author_email: route.query.author_email || '',
     keyword: route.query.keyword || '',
     ingredient: route.query.ingredient || ''
 })
 
+// Pagination state
 const currentPage = ref(parseInt(route.query.page) || 1)
 const perPage = ref(parseInt(route.query.per_page) || 10)
 
-// Simple reactive data
-const data = ref(null)
-const pending = ref(true) // Start as pending
-const error = ref(null)
+// Computed properties
+const hasActiveSearch = computed(() => {
+    return !!(searchParams.author_email || searchParams.keyword || searchParams.ingredient)
+})
 
-// Function to fetch recipes
-const fetchRecipes = async () => {
+// Load recipes function
+const loadRecipes = async () => {
     try {
-        pending.value = true
-        error.value = null
+        isLoading.value = true
+        hasError.value = false
 
+        // Build query parameters
         const query = {
-            ...searchParams.value,
             page: currentPage.value,
             per_page: perPage.value
         }
 
-        // Remove empty values
-        Object.keys(query).forEach(key => {
-            if (query[key] === '' || query[key] === null || query[key] === undefined) {
-                delete query[key]
-            }
-        })
+        // Add search parameters if they exist
+        if (searchParams.author_email) query.author_email = searchParams.author_email
+        if (searchParams.keyword) query.keyword = searchParams.keyword
+        if (searchParams.ingredient) query.ingredient = searchParams.ingredient
 
+        // Fetch data
         const response = await $fetch('/api/recipes', {
             baseURL: 'http://localhost:8888',
             query
         })
 
-        data.value = response
-    } catch (err) {
-        console.warn('Failed to fetch recipes:', err)
-        error.value = err
-        data.value = null
+        recipes.value = response
+    } catch (error) {
+        console.warn('Failed to load recipes:', error)
+        hasError.value = true
+        recipes.value = null
     } finally {
-        pending.value = false
+        isLoading.value = false
     }
 }
 
-// Only fetch on client side
-onMounted(() => {
-    fetchRecipes()
-})
-
-// Manual refresh function
-const refresh = () => {
-    fetchRecipes()
-}
-
-const hasSearchParams = computed(() => {
-    return !!(searchParams.value.author_email || searchParams.value.keyword || searchParams.value.ingredient)
-})
-
+// Event handlers
 const handleSearch = (newSearchParams) => {
-    searchParams.value = { ...newSearchParams }
-    currentPage.value = 1 // Reset to first page on new search
+    // Update search parameters
+    Object.assign(searchParams, newSearchParams)
 
-    // Update URL
+    // Reset to first page
+    currentPage.value = 1
+
+    // Update URL and load recipes
     updateURL()
-
-    // Fetch new results
-    fetchRecipes()
+    loadRecipes()
 }
 
 const handlePageChange = (page) => {
     currentPage.value = page
     updateURL()
-    fetchRecipes()
+    loadRecipes()
 
-    // Scroll to top
+    // Scroll to top smoothly
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const handlePerPageChange = () => {
-    currentPage.value = 1 // Reset to first page when changing per page
+    currentPage.value = 1
     updateURL()
-    fetchRecipes()
+    loadRecipes()
 }
 
+// URL management
 const updateURL = () => {
     const query = {}
 
-    if (searchParams.value.author_email) query.author_email = searchParams.value.author_email
-    if (searchParams.value.keyword) query.keyword = searchParams.value.keyword
-    if (searchParams.value.ingredient) query.ingredient = searchParams.value.ingredient
+    // Add search parameters
+    if (searchParams.author_email) query.author_email = searchParams.author_email
+    if (searchParams.keyword) query.keyword = searchParams.keyword
+    if (searchParams.ingredient) query.ingredient = searchParams.ingredient
+
+    // Add pagination parameters
     if (currentPage.value > 1) query.page = currentPage.value
     if (perPage.value !== 10) query.per_page = perPage.value
 
+    // Update URL without navigation
     router.push({ query })
 }
 
-// Watch for URL changes
-watch(() => route.query, (newQuery) => {
-    searchParams.value = {
-        author_email: newQuery.author_email || '',
-        keyword: newQuery.keyword || '',
-        ingredient: newQuery.ingredient || ''
-    }
-    currentPage.value = parseInt(newQuery.page) || 1
-    perPage.value = parseInt(newQuery.per_page) || 10
+// Initialize search parameters from URL
+const initializeFromURL = () => {
+    searchParams.author_email = route.query.author_email || ''
+    searchParams.keyword = route.query.keyword || ''
+    searchParams.ingredient = route.query.ingredient || ''
+    currentPage.value = parseInt(route.query.page) || 1
+    perPage.value = parseInt(route.query.per_page) || 10
+}
 
-    // Fetch new data when URL changes
-    fetchRecipes()
-}, { immediate: false }) // Don't run immediately since we already fetched on mount
+// Watch for URL changes (browser back/forward)
+watch(() => route.query, () => {
+    initializeFromURL()
+    loadRecipes()
+}, { deep: true })
+
+// Initial load
+onMounted(() => {
+    initializeFromURL()
+    loadRecipes()
+})
 </script>
