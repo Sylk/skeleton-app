@@ -1,12 +1,6 @@
 // nuxt.config.ts
 export default defineNuxtConfig({
-    devtools: {
-      enabled: true,
-
-      timeline: {
-        enabled: true
-      }
-    },
+    devtools: { enabled: true },
 
     // CSS Framework
     css: ['~/assets/css/main.css'],
@@ -49,6 +43,11 @@ export default defineNuxtConfig({
 
     // SSR Configuration
     ssr: true,
+
+    // Better error handling for client hydration
+    experimental: {
+        payloadExtraction: false
+    },
 
     // Nitro Configuration for API proxy (optional)
     nitro: {

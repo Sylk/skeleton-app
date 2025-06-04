@@ -50,7 +50,8 @@
                             id="perPage"
                             v-model="perPage"
                             @change="handlePerPageChange"
-                            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="border border-gray-300 rounded-md px-3 py-1 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none bg-no-repeat bg-right"
+                            style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K'); background-position: right 8px center; background-size: 12px 8px;"
                         >
                             <option value="10">10</option>
                             <option value="20">20</option>
@@ -118,7 +119,7 @@ const perPage = ref(parseInt(route.query.per_page) || 10)
 
 // Simple reactive data
 const data = ref(null)
-const pending = ref(false)
+const pending = ref(true) // Start as pending
 const error = ref(null)
 
 // Function to fetch recipes
@@ -147,6 +148,7 @@ const fetchRecipes = async () => {
 
         data.value = response
     } catch (err) {
+        console.warn('Failed to fetch recipes:', err)
         error.value = err
         data.value = null
     } finally {
@@ -154,8 +156,10 @@ const fetchRecipes = async () => {
     }
 }
 
-// Initial fetch
-await fetchRecipes()
+// Only fetch on client side
+onMounted(() => {
+    fetchRecipes()
+})
 
 // Manual refresh function
 const refresh = () => {

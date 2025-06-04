@@ -80,7 +80,8 @@
                             id="perPage"
                             v-model="perPage"
                             @change="handlePerPageChange"
-                            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="border border-gray-300 rounded-md px-3 py-1 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none bg-no-repeat bg-right"
+                            style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K'); background-position: right 8px center; background-size: 12px 8px;"
                         >
                             <option value="10">10</option>
                             <option value="20">20</option>
@@ -138,7 +139,7 @@ const router = useRouter()
 
 // No search parameters - just get all recipes
 const currentPage = ref(parseInt(route.query.page) || 1)
-const perPage = ref(parseInt(route.query.per_page) || 12) // Show more recipes on browse page
+const perPage = ref(parseInt(route.query.per_page) || 10) // Changed default from 12 to 10
 
 // Simple reactive data
 const data = ref(null)
@@ -197,7 +198,7 @@ const updateURL = () => {
     const query = {}
 
     if (currentPage.value > 1) query.page = currentPage.value
-    if (perPage.value !== 12) query.per_page = perPage.value
+    if (perPage.value !== 10) query.per_page = perPage.value
 
     router.push({ query })
 }
@@ -205,7 +206,7 @@ const updateURL = () => {
 // Watch for URL changes
 watch(() => route.query, (newQuery) => {
     currentPage.value = parseInt(newQuery.page) || 1
-    perPage.value = parseInt(newQuery.per_page) || 12
+    perPage.value = parseInt(newQuery.per_page) || 10
 
     // Fetch new data when URL changes
     fetchRecipes()

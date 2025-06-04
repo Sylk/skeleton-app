@@ -165,31 +165,58 @@
 <script setup>
 const route = useRoute()
 
-// Fetch recipe data directly with useFetch
-const { data: response, pending, error } = await useFetch(`/api/recipes/${route.params.slug}`, {
-    baseURL: 'http://localhost:8888',
-    key: `recipe-${route.params.slug}`
+// Client-side data fetching to avoid SSR issues
+const data = ref(null)
+const pending = ref(true)
+const error = ref(null)
+
+const fetchRecipe = async () => {
+    try {
+        pending.value = true
+        error.value = null
+
+        const response = await $fetch(`/api/recipes/${route.params.slug}`, {
+            baseURL: 'http://localhost:8888'
+        })
+
+        data.value = response.data
+    } catch (err) {
+        console.warn('Failed to fetch recipe:', err)
+        error.value = err
+
+        // Handle 404 specifically
+        if (err.status === 404 || err.statusCode === 404) {
+            throw createError({
+                statusCode: 404,
+                statusMessage: 'Recipe Not Found'
+            })
+        }
+    } finally {
+        pending.value = false
+    }
+}
+
+// Only fetch on client side
+onMounted(() => {
+    fetchRecipe()
 })
 
-// Extract the recipe data from the response
-const data = computed(() => response.value?.data)
+// SEO - make reactive based on data
+const pageTitle = computed(() =>
+    data.value?.name ? `${data.value.name} - Recipe Search 3000` : 'Recipe - Recipe Search 3000'
+)
 
-// SEO
+const pageDescription = computed(() =>
+    data.value?.description || 'Delicious recipe details'
+)
+
 useHead(() => ({
-    title: data.value?.name ? `${data.value.name} - Recipe Search 3000` : 'Recipe Not Found',
+    title: pageTitle.value,
     meta: [
         {
             name: 'description',
-            content: data.value?.description || 'Recipe not found'
+            content: pageDescription.value
         }
     ]
 }))
-
-// Handle errors
-if (error.value) {
-    throw createError({
-        statusCode: error.value.statusCode || 404,
-        statusMessage: 'Recipe Not Found'
-    })
-}
 </script>
