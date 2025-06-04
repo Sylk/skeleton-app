@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\RecipeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// Recipe API routes
+Route::prefix('recipes')->group(function () {
+    Route::get('/', [RecipeController::class, 'index']);
+    Route::get('/{recipe}', [RecipeController::class, 'show']);
 });
