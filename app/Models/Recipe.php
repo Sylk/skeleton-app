@@ -24,14 +24,10 @@ class Recipe extends Model
         'steps' => 'array',
     ];
 
-    /**
-     * Boot the model and set up event listeners
-     */
     protected static function boot()
     {
         parent::boot();
 
-        // Auto-generate slug when creating/updating
         static::saving(function ($recipe) {
             if (empty($recipe->slug) || $recipe->isDirty('name')) {
                 $recipe->slug = static::generateUniqueSlug($recipe->name);
@@ -39,9 +35,6 @@ class Recipe extends Model
         });
     }
 
-    /**
-     * Generate a unique slug based on the name
-     */
     protected static function generateUniqueSlug(string $name): string
     {
         $slug = Str::slug($name);
@@ -56,39 +49,30 @@ class Recipe extends Model
         return $slug;
     }
 
-    /**
-     * Scope for searching recipes
-     */
-    public function scopeSearch($query, array $params)
+    public function scopeByAuthor($query, string $email)
     {
-        // Author email - exact match
-        if (!empty($params['author_email'])) {
-            $query->where('author_email', $params['author_email']);
-        }
-
-        // Keyword - search across name, description, ingredients, steps
-        if (!empty($params['keyword'])) {
-            $keyword = strtolower($params['keyword']);
-            $query->where(function ($q) use ($keyword) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$keyword}%"])
-                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$keyword}%"])
-                    ->orWhereRaw('LOWER(ingredients) LIKE ?', ["%{$keyword}%"])
-                    ->orWhereRaw('LOWER(steps) LIKE ?', ["%{$keyword}%"]);
-            });
-        }
-
-        // Ingredient - partial match in ingredients
-        if (!empty($params['ingredient'])) {
-            $ingredient = strtolower($params['ingredient']);
-            $query->whereRaw('LOWER(ingredients) LIKE ?', ["%{$ingredient}%"]);
-        }
-
-        return $query;
+        return $query->where('author_email', $email);
     }
 
-    /**
-     * Get route key name for route model binding
-     */
+    public function scopeWithKeyword($query, string $keyword)
+    {
+        $keyword = strtolower($keyword);
+
+        return $query->where(function ($q) use ($keyword) {
+            $q->whereRaw('LOWER(name) LIKE ?', ["%{$keyword}%"])
+                ->orWhereRaw('LOWER(description) LIKE ?', ["%{$keyword}%"])
+                ->orWhereRaw('LOWER(ingredients) LIKE ?', ["%{$keyword}%"])
+                ->orWhereRaw('LOWER(steps) LIKE ?', ["%{$keyword}%"]);
+        });
+    }
+
+    public function scopeWithIngredient($query, string $ingredient)
+    {
+        $ingredient = strtolower($ingredient);
+
+        return $query->whereRaw('LOWER(ingredients) LIKE ?', ["%{$ingredient}%"]);
+    }
+
     public function getRouteKeyName()
     {
         return 'slug';

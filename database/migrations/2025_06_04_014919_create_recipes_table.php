@@ -6,29 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('recipes', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->index(); // Index for ordering/searching
             $table->string('slug')->unique();
             $table->text('description');
-            $table->json('ingredients'); // Store as JSON array for unordered list
-            $table->json('steps'); // Store as JSON array for ordered list
-            $table->string('author_email')->index(); // Index for search performance
+            $table->json('ingredients');
+            $table->json('steps');
+            $table->string('author_email')->index(); // Index for exact match searches
             $table->timestamps();
 
-            // Add full-text index for better search performance
-            $table->fullText(['name', 'description']);
+            // Composite index for common search patterns
+            $table->index(['author_email', 'created_at']);
+
+            // Full-text index for better search performance (MySQL only)
+            if (config('database.default') === 'mysql') {
+                $table->fullText(['name', 'description']);
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('recipes');
